@@ -1,0 +1,17 @@
+{
+  "name": "youtube-shield",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension that skips YouTube ads the moment they start and hides display ads, without blocking any YouTube request.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "icons": "node scripts/make-icons.mjs",
+    "icons:check": "node scripts/make-icons.mjs --check",
+    "mutants": "node scripts/mutation-check.mjs",
+    "e2e": "node scripts/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.58.2"
+  }
+}

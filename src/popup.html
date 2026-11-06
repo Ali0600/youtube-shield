@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YouTube Shield</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon-32.png" width="24" height="24" alt="">
+    <h1>YouTube Shield</h1>
+    <label class="switch" title="Skip ads and hide display ads">
+      <input type="checkbox" id="enabled" checked>
+      <span class="track"><span class="thumb"></span></span>
+      <span class="sr">On</span>
+    </label>
+  </header>
+
+  <section class="hero">
+    <div class="big" id="pageAds">–</div>
+    <div class="label" id="pageLabel">ads skipped on this page</div>
+  </section>
+
+  <p class="state" id="state" data-kind="idle">Checking this tab…</p>
+  <p class="hint" id="hint" hidden></p>
+
+  <dl class="facts">
+    <div><dt>Last ad on screen</dt><dd id="lastAd">–</dd></div>
+    <div><dt>Ad time skipped here</dt><dd id="pageSaved">–</dd></div>
+    <div><dt>All time</dt><dd id="total">–</dd></div>
+  </dl>
+
+  <details id="logBox" hidden>
+    <summary>Activity on this page</summary>
+    <ol id="log"></ol>
+  </details>
+
+  <script src="popup.js"></script>
+</body>
+</html>
