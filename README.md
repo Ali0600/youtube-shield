@@ -95,8 +95,9 @@ Not covered:
 
 - after some long, skippable ads, YouTube puts the player into a 7-second wait before the next clip
   (`ytp-ad-display-override`: 7.0–7.2 s every time, a Skip button showing, nothing loading). The shield cannot shorten
-  it. In the 2026-11-08 lab runs it followed particular ads every time they were served and other ads never;
-  whether YouTube also does it when nothing skips is untested (`docs/DECISIONS.md`);
+  it. It is rare: it followed 4 of 128 ad transitions in a 2-hour lab run on 2026-11-08, always after particular ads.
+  Whether YouTube also does it when nothing skips is still untested, because those ads never came up with the shield
+  off (`docs/DECISIONS.md`);
 - a stitched (`SSAP`) mid-roll is muted and left to play out;
 - Shorts ads are hidden as whole reels, not skipped;
 - YouTube Music gets the skipper but has had no live run;
@@ -115,14 +116,15 @@ Not covered:
 | `tests/` | `node --test` suites against stub pages and stub `chrome.*` APIs; `mutants.json` for the mutation check |
 | `scripts/e2e.mjs` | The live control-vs-shield run on real YouTube |
 | `scripts/mutation-check.mjs` | Plants each bug in `tests/mutants.json` in a copy and requires its named test to fail |
-| `scripts/pod-lab.mjs` | The ad-break lab: plays videos with a patched copy of the extension per skip strategy (`--mode off, seek, rate16, delay<ms>`) and records each break at 100 ms, with the network observed, never blocked |
+| `scripts/pod-lab.mjs` | The ad-break lab: plays videos with a patched copy of the extension per skip strategy (`--mode off, userskip, seek, seekafter, rate16, delay<ms>, clipdelay<ms>`) and records each break at 100 ms, with the network observed, never blocked. `--rotate` cycles the strategies, one fresh browser per video load; `--aggregate` tabulates each ad (by its own video id) per strategy |
+| `scripts/pod-lab-rule.mjs` | The pre-registered rule that decides, from the rotation's records, whether the shield provokes YouTube's 7 s display-override wait |
 | `docs/` | `DECISIONS.md`, `learnings.md` |
 
 ## Develop
 
 ```bash
 npm install          # playwright-core only, for the live run; the extension itself has no dependencies
-npm test             # 38 unit tests, under a second
+npm test             # 47 unit tests, under a second
 npm run mutants      # 34 planted bugs, each must turn a named test red (about a minute)
 npm run e2e          # live: control vs shield on 4 videos, then the popup (about 5 minutes; reports/ is git-ignored)
 ```

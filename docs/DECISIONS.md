@@ -18,8 +18,27 @@
   decisive test of whether the shield provokes it. Run one profile and alternate the shield on and off per video,
   repeating the same videos, with ads fingerprinted by exact clip duration (or their ad video id, read passively), until
   each override-prone ad has ended naturally several times. Also add an arm that lets the ad play past its skip offset
-  (about 5.3 s of media) before seeking: no arm got past about 2.8 s. Revisit hook: a new `--mode` in
-  `scripts/pod-lab.mjs`.
+  (about 5.3 s of media) before seeking: no arm got past about 2.8 s.
+  **Ran 2026-11-08 for 2 hours, result inconclusive.** The run used `scripts/pod-lab.mjs --rotate
+  off,userskip,seek,seekafter`, 82 loads plus 7 smoke loads, one fresh browser each.
+  - The arms: `userskip` clicks Skip with trusted input, as a viewer would; `seekafter` seeks once the clip reaches
+    5.5 s of media.
+  - How ads were identified: by their own video id, from `getStatsForNerds().video_id_and_cpn`.
+  - The decision rule: `scripts/pod-lab-rule.mjs`. Its thresholds are pinned by `tests/pod-lab-rule.test.js`, which
+    was written before any rotation data. The module's operational clauses were finished after the first smoke load;
+    none of them binds here.
+  - Verdict: (C) inconclusive. Ads that trigger the wait were served 4 times in 89 loads (3 different ads), never to
+    the shield-off arm. The wait followed 4 of 128 ad transitions (3 %), lasting 7.04–7.19 s each.
+  - Both skeptics re-derived every count from the raw records and agreed.
+
+  Also learned from that run:
+  - A viewer's Skip on ad 1 of a 2-ad pod dropped the second ad too: 6 of 6, from 3 distinct ads in one session.
+  - Up to 8 different ads share one exact duration, so the earlier duration-only labels are unreliable.
+  - The next ad's identity does not drive the wait: an ad that followed two waits also followed other ads 9 times
+    without one.
+
+  Revisit hook: rerun the rotation over several sessions (`--loads`, `--minutes`) until the off arm has seen the
+  wait-triggering ads end naturally at least 3 times. At this serving rate that is hundreds of loads.
 - **Click the Skip button YouTube shows during the display-override wait** (2026-11-08). In that state `tick()` does
   nothing: `debug_info` has no `USDAI` prefix and the clip's duration is NaN. Run this only after the test above shows
   the shield causes the wait. A routine, scripted click on Skip for an ad that played 0 s is a new behavioural signal
@@ -42,6 +61,10 @@ Each run was timed at 100 ms with the network observed, and two independent skep
 - **Seek only after the ad has been up 1.5 s or 3 s**: rejected. It adds about 1.1 s of visible ad per break, the video
   starts no sooner, and the override still happened with both delays. Its 0 overrides in 6 pods was ad mix: it was
   never served an override-prone ad.
+- **Seek only once the ad reaches its skip point (5.5 s of media)**: rejected after the 2026-11-08 rotation.
+  - It keeps every ad on screen, muted, about 5.5 s longer.
+  - The 7 s wait still followed both wait-triggering ads it met (n=1 each, so by the rule this is inconclusive).
+  - One of those ads only offered Skip at 10 s, so "the skip point" is not a fixed 5 s.
 - **Try to start the video before YouTube's content gate**: rejected. YouTube's server holds the video back for most
   of the ad's length. The video was re-requested at the same time with the shield off and on, for each ad layout,
   within about 1 s (yt-dlp measured the gate at about 0.8 × the ad's length). Getting the video earlier than YouTube

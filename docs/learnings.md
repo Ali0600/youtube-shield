@@ -112,3 +112,17 @@ data, and transitions within one pod were counted as independent.
 
 **Takeaway:** identify the unit the environment varies (here, which ad), stratify or interleave by it, fix thresholds
 before looking, and count clustered events once per cluster.
+
+### Budget a test of a rare, randomly served case by exposures, not by time
+
+When the environment decides which case each trial gets, a time budget buys trials. Only the trials that happen to
+hit the rare case count as evidence.
+
+**Why it came up:** a 2-hour rotation of four strategies (82 loads, 118 ad transitions) was meant to show whether
+YouTube's 7 s wait also happens with the shield off. The ads that trigger it were served 4 times in 89 loads, and
+never to the shield-off arm, so the pre-registered rule could only say "inconclusive". The serving rate seen before
+the run (a handful of trigger ads across 61 breaks) had already predicted that.
+
+**Takeaway:** before a long run, work out from the earlier rate how many exposures each arm should get. If the arm
+that decides the question will get fewer than the rule needs, change the design (more sessions, a forced case),
+not the threshold.
