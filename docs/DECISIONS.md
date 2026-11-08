@@ -14,8 +14,47 @@
   stitched mid-roll (none has appeared yet).
 - **Skip Shorts ads instead of hiding the reel.** Shorts play in `#shorts-player`, so `ad-showing` never fires there.
   Revisit hook: a watcher on `ytd-reel-video-renderer[is-active]` that contains `ytd-ad-slot-renderer`.
+- **Find out whether YouTube's 7 s display-override wait also happens when nothing skips** (2026-11-08). This is the
+  decisive test of whether the shield provokes it. Run one profile and alternate the shield on and off per video,
+  repeating the same videos, with ads fingerprinted by exact clip duration (or their ad video id, read passively), until
+  each override-prone ad has ended naturally several times. Also add an arm that lets the ad play past its skip offset
+  (about 5.3 s of media) before seeking: no arm got past about 2.8 s. Revisit hook: a new `--mode` in
+  `scripts/pod-lab.mjs`.
+- **Click the Skip button YouTube shows during the display-override wait** (2026-11-08). In that state `tick()` does
+  nothing: `debug_info` has no `USDAI` prefix and the clip's duration is NaN. Run this only after the test above shows
+  the shield causes the wait. A routine, scripted click on Skip for an ad that played 0 s is a new behavioural signal
+  for YouTube; the existing click branch has never fired in any recorded run. Test it by interleaving click and
+  no-click per override within one run (3–5 clicked overrides settle it against the fixed 7.0–7.2 s baseline). Check
+  for detection over several days in a signed-in profile. Revisit hook: a branch in `tick()` guarded on the player's
+  `ytp-ad-display-override` class and a non-finite clip duration.
 
-## 2026-11-06: how ads are removed
+## 2026-11-08: how and when to skip
+
+Context: in the 2026-11-08 live runs, 11 of 33 ad breaks (all pods) stayed up 2.6–15 s. A lab (`scripts/pod-lab.mjs`)
+ran 13 interleaved runs, one browser at a time: no shield, today's instant seek, 16× playback and delayed seeks.
+Each run was timed at 100 ms with the network observed, and two independent skeptics re-derived the numbers.
+
+- **Mute and seek the ad clip to its end at once**: kept. Single ads were on screen for a median 1.27 s, against 2.01
+  s for 16× and 2.38 s for a 1.5 s delay. No variant reached the video sooner.
+- **Fast-forward the ad at 16× instead of seeking**: rejected. YouTube reset the rate to 1 on every clip load (15 of
+  15). A long ad stays up for its length / 16 (a 235 s ad stayed up 22.7 s). It met the display-override wait as
+  often as seeking.
+- **Seek only after the ad has been up 1.5 s or 3 s**: rejected. It adds about 1.1 s of visible ad per break, the video
+  starts no sooner, and the override still happened with both delays. Its 0 overrides in 6 pods was ad mix: it was
+  never served an override-prone ad.
+- **Try to start the video before YouTube's content gate**: rejected. YouTube's server holds the video back for most
+  of the ad's length. The video was re-requested at the same time with the shield off and on, for each ad layout,
+  within about 1 s (yt-dlp measured the gate at about 0.8 × the ad's length). Getting the video earlier than YouTube
+  allows would be evading its ad enforcement, which is out of scope.
+
+What the stall is, as far as the data shows:
+- In a pod, the 7 s gap is YouTube's `ytp-ad-display-override` state: 7.0–7.2 s every time (n=11), no clip attached,
+  no media in flight, the next clip requested only at its end.
+- It followed specific ads every time they were served (all-or-nothing per exact clip duration), and never the common
+  20.02 s skippable ad (0 of 22).
+- The first analysis read it as "ads of 17.5 s or more, 20–30% of the time". The skeptics showed that was the ad mix:
+  the threshold was set after seeing the data, and the transitions were not independent.
+- Seeking also costs one extra media request per ad→ad switch: about 0.2–0.3 s, small.
 
 Context: the mainstream blockers (Adblock Plus, AdBlock, uBlock Origin) "don't work on YouTube" for the owner.
 Research on 2026-11-06 found that uBlock Origin Lite, AdGuard and uBlock Origin all have open "ads slip through" or

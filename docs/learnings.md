@@ -85,3 +85,30 @@ bug went red in 2 of 2 runs. Both times no clean reading arrived at all; the hol
 the gap into a red one.
 
 **Takeaway:** after a state settles, require it to hold for longer than the slowest loop that could undo it.
+
+### Skipping an ad does not make YouTube send the video sooner
+
+YouTube's server holds back the video's own media for most of the ad's length. Whatever happens to the ad on screen,
+the video's media is not sent before then.
+
+**Why it came up:** after a skip, the video often sat loaded but frozen for 6–12 s. In the lab, the video's media was
+re-requested at the same moment with the shield off and on, for each ad layout, within about 1 s. yt-dlp's developers
+measured the same wait in 2025 at about 0.8 × the ad's length. So the shield takes the ad off screen in about a second,
+but after a 10–15 s ad that can't be skipped, the video starts only about 2.5–4 s sooner.
+
+**Takeaway:** measure "the thing went away" and "the thing you wanted arrived" as separate numbers. The second can be
+gated somewhere you don't control.
+
+### When the environment picks the treatment unit, per-arm rates measure the mix
+
+When each run gets a different random draw of what it is tested on (here, which ads YouTube serves), a per-arm
+rate compares the draws, not the arms.
+
+**Why it came up:** one delayed-skip strategy showed 0 of 6 YouTube 7 s waits against 4 of 16 for the instant skip, and
+looked like a partial fix. A skeptic matched the ads by exact clip duration. That delayed arm had only been served ads
+that never caused the wait in any arm, while each ad that did cause it did so every time it was served. The first
+analysis's "ads of 17.5 s or more, 20–30% of the time" had the same flaw: the threshold was chosen after seeing the
+data, and transitions within one pod were counted as independent.
+
+**Takeaway:** identify the unit the environment varies (here, which ad), stratify or interleave by it, fix thresholds
+before looking, and count clustered events once per cluster.

@@ -21,6 +21,15 @@ two arms:
 
 YouTube showed no ad-blocker notice, and every built-in it can check was still native.
 
+**What a skip saves.** The ad leaves the screen, silenced, within about a second. The video itself does not always
+start that fast: YouTube's server holds the video back for most of the ad's length whether or not anything skips it
+(a wait yt-dlp's developers measured in 2025 at about 0.8 × the ad's length). The 2026-11-08 lab runs measured how much
+sooner the video starts:
+- after a 10–15 s ad that cannot be skipped, about 2.5–4 s sooner than watching the ad;
+- after a pod that opens with a skippable ad, about 3.5–8 s sooner than pressing Skip at the first chance.
+
+The real gain is not seeing or hearing the ads.
+
 The live run above was in Playwright's Chromium. The shield also ran in an everyday, signed-in Chrome 156 profile on
 2026-11-07: there it skipped its first 3 ads (36 s of ads) within minutes of being loaded, read from its saved totals.
 
@@ -84,9 +93,10 @@ src/page.js ── youtube-shield:* DOM events ──▶ src/bridge.js ── ru
 
 Not covered:
 
-- in a pod of several ads, the next ad's clip sometimes sits unloaded (no duration yet, paused) for seconds before
-  it can be skipped: in the 2026-11-08 test runs 11 of 33 ad breaks stayed up longer than 2.5 s, up to 15 s, every
-  one a pod, while single ads cleared in under 2 s (cause not yet known);
+- after some long, skippable ads, YouTube puts the player into a 7-second wait before the next clip
+  (`ytp-ad-display-override`: 7.0–7.2 s every time, a Skip button showing, nothing loading). The shield cannot shorten
+  it. In the 2026-11-08 lab runs it followed particular ads every time they were served and other ads never;
+  whether YouTube also does it when nothing skips is untested (`docs/DECISIONS.md`);
 - a stitched (`SSAP`) mid-roll is muted and left to play out;
 - Shorts ads are hidden as whole reels, not skipped;
 - YouTube Music gets the skipper but has had no live run;
@@ -105,6 +115,7 @@ Not covered:
 | `tests/` | `node --test` suites against stub pages and stub `chrome.*` APIs; `mutants.json` for the mutation check |
 | `scripts/e2e.mjs` | The live control-vs-shield run on real YouTube |
 | `scripts/mutation-check.mjs` | Plants each bug in `tests/mutants.json` in a copy and requires its named test to fail |
+| `scripts/pod-lab.mjs` | The ad-break lab: plays videos with a patched copy of the extension per skip strategy (`--mode off, seek, rate16, delay<ms>`) and records each break at 100 ms, with the network observed, never blocked |
 | `docs/` | `DECISIONS.md`, `learnings.md` |
 
 ## Develop
@@ -140,12 +151,16 @@ print apart from the skipper's.
   own world that replaces none of its 10 checked built-ins, and an isolated bridge that type-checks and bounds every
   field a page could forge. It needs 1 permission (`storage`) and no network rules.
 - Measured it live against a control on real YouTube: ads cleared in 0.3 to 1.6 s with the shield, versus 15 s and
-  more without it, on 4 of 4 videos; display-ad slots went from 2 visible to 0.
+  more without it, on 4 of 4 videos, and display-ad slots went from 2 visible to 0. Then ran a controlled experiment on
+  why some ad breaks stalled: 13 interleaved runs of 4 skip strategies against a no-shield control, timing 61 ad
+  breaks at 100 ms alongside the network traffic, with the statistics re-derived by two independent skeptics. It
+  traced the stalls to a fixed 7.1 s YouTube player state and a server-side content gate, and caught a per-ad confound
+  that had made one strategy look better.
 - Built the end-to-end harness on Playwright with fresh throwaway profiles per arm. Reading the frames found that an
   in-page EU consent dialog was what paused every video, which kept a wrong bot-detection theory out of the docs. Its
   live popup check flips the real switch and requires each outcome to hold for 2 s; it turned red in 2 of 2 runs for
   each of 2 planted bugs that the first version of the check let through.
-- Covered the logic with 37 `node --test` cases against stub DOM and `chrome.*` APIs, plus a mutation harness of 34
+- Covered the logic with 38 `node --test` cases against stub DOM and `chrome.*` APIs, plus a mutation harness of 34
   planted bugs that each must turn a named test red. Its first run caught 2 survivors (a redundant guard and a test
   that could not see a re-sent setting).
 - Generated the icons with a zero-dependency PNG encoder (`zlib` deflate and CRC-32, supersampled shapes), pinned

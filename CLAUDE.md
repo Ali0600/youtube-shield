@@ -20,10 +20,11 @@ npm run e2e
 It takes about 5 minutes. It is only evidence if the control arm showed ads. It prints `PASS`/`FAIL` and writes
 `reports/e2e-*.json` (git-ignored, with a per-second timeline per video). After the shield arm it reloads the last
 video and checks the popup and its switch (`checkPopup`); read the `popup:` and `switch ...:` lines apart from the
-`shield:` (skipper) lines. Known open skipper failure (2026-11-08: 11 of 33 ad breaks, all pods): after the first ad
-of a pod is skipped, the next clip can sit unloaded (`duration` NaN, paused) for 2–13 s, keeping the ad up 2.6–15 s.
-The cause is not established (YouTube's pod loading, the network, or the skip itself). Never loosen the 2.5 s
-threshold for it; investigate it with a control that watches natural pod transitions.
+`shield:` (skipper) lines. Known open red line: after some long skippable ads YouTube holds the player in
+`ytp-ad-display-override` for a fixed 7.0–7.2 s with no clip attached, which keeps a pod up past the 2.5 s threshold.
+The verdict line says so ("N ms of it in YouTube's display-override wait"). It follows particular ads; whether the
+skip provokes it is untested (`docs/DECISIONS.md`, 2026-11-08). Never loosen the threshold or excuse it in the verdict.
+Ad timing experiments go through `scripts/pod-lab.mjs`, one browser at a time on an idle machine, never editing `src/`.
 
 - **Run the live check on an idle machine.** Other builds on the same PC made page reads slow enough to fail the popup
   check's hold (fewer than 4 readings in 2 s, or a read with no answer in 5 s). Those lines say the check could not

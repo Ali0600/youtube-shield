@@ -68,6 +68,8 @@ const probePlayer = () => {
     length,
     playability,
     enforcement: Boolean(document.querySelector('ytd-enforcement-message-view-model')),
+    // YouTube's own timed state between some ads (7.0–7.2 s, no clip attached; docs/DECISIONS.md, 2026-11-08).
+    override: Boolean(player && player.classList.contains('ytp-ad-display-override')),
     botCheck: /confirm you.re not a bot/i.test(document.body ? document.body.innerText.slice(0, 5000) : ''),
   };
 };
@@ -203,14 +205,16 @@ async function watch(page, id) {
   const episodes = [];
   let open = null;
   const parkedAt = (s) => Boolean(s && s.paused && Number.isFinite(s.duration) && s.duration > 1 && s.currentTime >= s.duration - 0.3);
+  // overrideMs: how long YouTube's ytp-ad-display-override state was on during the episode (sampled every 100 ms). It
+  // is named in the verdict, never excused: whether the shield's skip provokes it is untested.
   for (const s of samples) {
-    if (s.ad && !open) open = { start: s.t, mode: s.mode, last: s };
-    else if (s.ad && open) open.last = s;
-    else if (!s.ad && open) { episodes.push({ ms: Math.round(s.t - open.start), mode: open.mode }); open = null; }
+    if (s.ad && !open) open = { start: s.t, mode: s.mode, last: s, overrideMs: 0 };
+    else if (s.ad && open) { if (s.override && open.last.override) open.overrideMs += s.t - open.last.t; open.last = s; }
+    else if (!s.ad && open) { episodes.push({ ms: Math.round(s.t - open.start), mode: open.mode, overrideMs: Math.round(open.overrideMs) }); open = null; }
   }
   if (open) {
     episodes.push({
-      ms: Math.round(open.last.t - open.start), mode: open.mode, stillUp: true, parked: parkedAt(open.last),
+      ms: Math.round(open.last.t - open.start), mode: open.mode, overrideMs: Math.round(open.overrideMs), stillUp: true, parked: parkedAt(open.last),
       at: open.last.currentTime == null ? null : `${open.last.currentTime.toFixed(2)} of ${Number(open.last.duration).toFixed(2)} s`,
     });
   }
@@ -528,7 +532,10 @@ if (shield) {
     const parked = v.episodes.some((e) => e.parked);
     for (const e of v.episodes) {
       if (e.parked) continue;
-      if (e.ms > 2500 || e.stillUp) problems.push(`shield: ${v.id} kept an ad up ${e.ms} ms${e.stillUp ? ` (still up at the end, at ${e.at})` : ''} (${e.mode || '?'})`);
+      if (e.ms > 2500 || e.stillUp) {
+        const override = e.overrideMs >= 1000 ? `; ${e.overrideMs} ms of it in YouTube's display-override wait` : '';
+        problems.push(`shield: ${v.id} kept an ad up ${e.ms} ms${e.stillUp ? ` (still up at the end, at ${e.at})` : ''} (${e.mode || '?'}${override})`);
+      }
     }
     if (!v.reachedContent && !parked) problems.push(`shield: ${v.id} the video itself was never reached`);
     const c = control && control.videos.find((x) => x.id === v.id);
