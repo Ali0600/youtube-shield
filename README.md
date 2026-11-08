@@ -34,8 +34,9 @@ Chrome doesn't load an extension from a folder unless you turn on Developer mode
 4. Click **Load unpacked** and pick the cloned folder (the one holding `manifest.json`).
 5. Pin the extension to the toolbar (puzzle icon → pin) to see its count.
 
-**Turn off your other ad blockers on youtube.com** (Adblock Plus, AdBlock, uBlock Origin Lite, AdGuard). They block or
-rewrite YouTube's requests, which is what makes YouTube show its "Ad blockers are not allowed" notice. When that
+**Turn off your other ad blockers on youtube.com** (Adblock Plus, AdBlock, uBlock Origin Lite, AdGuard, and Poper
+Blocker, whose YouTube feature rewrites the player's requests and hides `#player-ads`). They block or rewrite YouTube's
+requests, which is what makes YouTube show its "Ad blockers are not allowed" notice. When that
 notice appears, this shield stands down for the page and says so in its popup.
 
 Chrome keeps an unpacked extension across restarts. After `git pull`, press the reload arrow on its card in
