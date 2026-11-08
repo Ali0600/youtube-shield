@@ -58,3 +58,30 @@ One test asserted the last setting sent, which looked the same whether or not th
 not see the re-send removed.
 
 **Takeaway:** a guard whose mutant survives either has no test that can see it break, or isn't needed.
+
+### A check that causes the value it reads proves nothing about the code meant to cause it
+
+If the instrument writes, refreshes or toggles the thing it then reads, a reading can only show the instrument worked.
+
+**Why it came up:** the first live popup check read the page's status by sending `youtube-shield:hello`, which makes
+the page report. The bridge caches each report, and the popup shows that cache, so every read refreshed what the
+popup was about to show. The switch had the same trap: right after a click, `checked` is the click's own toggle, and
+before any click it is popup.html's default. A reviewer showed the line binding the switch to storage could be
+deleted and the check still passed. Now an init script records each status the page sends on its own, the page is
+reloaded first, and the popup is reopened with no click after each flip. Deleting `report()` from the page's switch
+handler, or the switch-from-storage line, now turns the live check red.
+
+**Takeaway:** read passively, and read the result where your own action cannot have put it (a fresh load, a reopened
+view, a second reader).
+
+### "It became true" is not "it stays true"
+
+A wait-until-true check returns at the first good reading, so a state that only flickers passes.
+
+**Why it came up:** `page.js` re-mounts its stylesheet every 500 ms. With its `!state.enabled` guard removed, the
+shield switched off and then hid ads again by itself; the first check caught that in 1 of 2 runs (the reviewer's
+count). Now every outcome must hold for 2 s, longer than the 500 ms re-mount and the popup's 1 s re-read. The planted
+bug went red in 2 of 2 runs. Both times no clean reading arrived at all; the hold is what turns a lucky reading in
+the gap into a red one.
+
+**Takeaway:** after a state settles, require it to hold for longer than the slowest loop that could undo it.

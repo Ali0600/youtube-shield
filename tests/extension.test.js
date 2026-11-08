@@ -4,10 +4,26 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { makeStorage } = require('./chrome-storage');
 
 const ROOT = path.join(__dirname, '..');
 const src = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const flush = () => new Promise((r) => setImmediate(r));
+
+test('test helper: the storage stub answers get() the way chrome.storage does, for every call style', async () => {
+  const changes = [];
+  const s = makeStorage({ enabled: false, totalAds: 3 }, [(c, area) => changes.push([c, area])]);
+  assert.deepEqual(await s.get(null), { enabled: false, totalAds: 3 });
+  assert.deepEqual(await s.get(undefined), { enabled: false, totalAds: 3 });
+  assert.deepEqual(await s.get('enabled'), { enabled: false });
+  assert.deepEqual(await s.get('missing'), {});
+  assert.deepEqual(await s.get(['enabled', 'missing']), { enabled: false });
+  assert.deepEqual(await s.get([]), {});
+  assert.deepEqual(await s.get({ enabled: true, totalSeconds: 0 }), { enabled: false, totalSeconds: 0 }, 'defaults overlaid, nothing else');
+  await s.set({ enabled: true });
+  assert.deepEqual(changes, [[{ enabled: { oldValue: false, newValue: true } }, 'local']]);
+  assert.deepEqual(await s.get('enabled'), { enabled: true });
+});
 
 function makeChrome(initial = {}) {
   const store = { ...initial };
@@ -23,14 +39,7 @@ function makeChrome(initial = {}) {
       onMessage: { addListener: (fn) => onMessage.push(fn) },
     },
     storage: {
-      local: {
-        get: async (defaults) => ({ ...defaults, ...store }),
-        set: async (v) => {
-          const changes = {};
-          for (const [k, nv] of Object.entries(v)) { changes[k] = { oldValue: store[k], newValue: nv }; store[k] = nv; }
-          onChanged.forEach((fn) => fn(changes, 'local'));
-        },
-      },
+      local: makeStorage(store, onChanged),
       onChanged: { addListener: (fn) => onChanged.push(fn) },
     },
     action: {

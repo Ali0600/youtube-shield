@@ -84,6 +84,9 @@ src/page.js ── youtube-shield:* DOM events ──▶ src/bridge.js ── ru
 
 Not covered:
 
+- in a pod of several ads, the next ad's clip sometimes sits unloaded (no duration yet, paused) for seconds before
+  it can be skipped: in the 2026-11-08 test runs 11 of 33 ad breaks stayed up longer than 2.5 s, up to 15 s, every
+  one a pod, while single ads cleared in under 2 s (cause not yet known);
 - a stitched (`SSAP`) mid-roll is muted and left to play out;
 - Shorts ads are hidden as whole reels, not skipped;
 - YouTube Music gets the skipper but has had no live run;
@@ -108,13 +111,28 @@ Not covered:
 
 ```bash
 npm install          # playwright-core only, for the live run; the extension itself has no dependencies
-npm test             # 31 unit tests, under a second
-npm run mutants      # 23 planted bugs, each must turn a named test red (about a minute)
-npm run e2e          # live: control vs shield on 4 videos (about 5 minutes; reports/ is git-ignored)
+npm test             # 38 unit tests, under a second
+npm run mutants      # 34 planted bugs, each must turn a named test red (about a minute)
+npm run e2e          # live: control vs shield on 4 videos, then the popup (about 5 minutes; reports/ is git-ignored)
 ```
 
 The live run needs Playwright's Chromium (`npx playwright install chromium`, or set `YTS_CHROMIUM`): Google Chrome
 has ignored `--load-extension` since version 142. The window opens off-screen; add `--visible` to watch it.
+`--arms control` or `--arms shield` runs one arm; any other name fails the run.
+
+After the shield arm's videos, the live run reloads the last video and checks the popup against the page:
+
+- the popup reads that YouTube tab (its top frame answers with the page's own run id);
+- its count matches what the page reported, and a synthetic status of 37 ads sent through the real bridge shows 37;
+- the switch, clicked off and then on, changes the page's own status, chrome.storage, and whether a planted display-ad
+  element is hidden (by computed style);
+- the popup's switch (its checkbox and how it is drawn), state line and newest activity line ("off: switched off",
+  "on: switched on") all follow;
+- each outcome holds for 2 s, and holds again in the popup reopened with no click.
+
+The page's status is recorded as the page sends it and never asked for before it is read, so the check cannot refresh
+what it reads; one request at the end restores the page's own status after the synthetic one. Its `popup:` lines
+print apart from the skipper's.
 
 ## Experience Gained
 
@@ -124,8 +142,10 @@ has ignored `--load-extension` since version 142. The window opens off-screen; a
 - Measured it live against a control on real YouTube: ads cleared in 0.3 to 1.6 s with the shield, versus 15 s and
   more without it, on 4 of 4 videos; display-ad slots went from 2 visible to 0.
 - Built the end-to-end harness on Playwright with fresh throwaway profiles per arm. Reading the frames found that an
-  in-page EU consent dialog was what paused every video, which kept a wrong bot-detection theory out of the docs.
-- Covered the logic with 31 `node --test` cases against stub DOM and `chrome.*` APIs, plus a mutation harness of 23
+  in-page EU consent dialog was what paused every video, which kept a wrong bot-detection theory out of the docs. Its
+  live popup check flips the real switch and requires each outcome to hold for 2 s; it turned red in 2 of 2 runs for
+  each of 2 planted bugs that the first version of the check let through.
+- Covered the logic with 37 `node --test` cases against stub DOM and `chrome.*` APIs, plus a mutation harness of 34
   planted bugs that each must turn a named test red. Its first run caught 2 survivors (a redundant guard and a test
   that could not see a re-sent setting).
 - Generated the icons with a zero-dependency PNG encoder (`zlib` deflate and CRC-32, supersampled shapes), pinned
