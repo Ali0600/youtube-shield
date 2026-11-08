@@ -28,10 +28,11 @@ The live run above was in Playwright's Chromium. The shield also ran in an every
 
 Chrome doesn't load an extension from a folder unless you turn on Developer mode:
 
-1. Open `chrome://extensions`.
-2. Switch on **Developer mode** (top right).
-3. Click **Load unpacked** and pick this folder (the one holding `manifest.json`).
-4. Pin the extension to the toolbar (puzzle icon → pin) to see its count.
+1. Get the folder: `git clone https://github.com/Ali0600/youtube-shield.git` (or download the ZIP and unpack it).
+2. Open `chrome://extensions`.
+3. Switch on **Developer mode** (top right).
+4. Click **Load unpacked** and pick the cloned folder (the one holding `manifest.json`).
+5. Pin the extension to the toolbar (puzzle icon → pin) to see its count.
 
 **Turn off your other ad blockers on youtube.com** (Adblock Plus, AdBlock, uBlock Origin Lite, AdGuard). They block or
 rewrite YouTube's requests, which is what makes YouTube show its "Ad blockers are not allowed" notice. When that
