@@ -21,6 +21,9 @@ two arms:
 
 YouTube showed no ad-blocker notice, and every built-in it can check was still native.
 
+The live run above was in Playwright's Chromium. The shield also ran in an everyday, signed-in Chrome 156 profile on
+2026-11-07: there it skipped its first 3 ads (36 s of ads) within minutes of being loaded, read from its saved totals.
+
 ## Install
 
 Chrome doesn't load an extension from a folder unless you turn on Developer mode:
